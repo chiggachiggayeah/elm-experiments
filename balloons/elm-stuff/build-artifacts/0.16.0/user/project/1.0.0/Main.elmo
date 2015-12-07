@@ -1,0 +1,41 @@
+Elm.Main = Elm.Main || {};
+Elm.Main.make = function (_elm) {
+   "use strict";
+   _elm.Main = _elm.Main || {};
+   if (_elm.Main.values) return _elm.Main.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Color = Elm.Color.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $Graphics$Collage = Elm.Graphics.Collage.make(_elm),
+   $Graphics$Element = Elm.Graphics.Element.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm),
+   $Time = Elm.Time.make(_elm);
+   var _op = {};
+   var iter = A2($Signal.map,function (t) {    return t / 20;},$Time.fps(30));
+   var update = F2(function (dt,loon) {
+      return _U.cmp(loon.y + dt / 0.9,500) < 0 ? _U.update(loon,{b: A2($Graphics$Collage.moveY,dt / 0.9,loon.b),y: loon.y + dt / 0.9}) : loon;
+   });
+   var view = function (loon) {    return A3($Graphics$Collage.collage,1000,1000,_U.list([loon.b]));};
+   var balloon = function (_p0) {
+      var _p1 = _p0;
+      var _p3 = _p1._1;
+      var _p2 = _p1._0;
+      return $Graphics$Collage.group(_U.list([A2($Graphics$Collage.move,
+                                             {ctor: "_Tuple2",_0: _p2,_1: _p3},
+                                             A2($Graphics$Collage.filled,$Color.charcoal,$Graphics$Collage.circle(75)))
+                                             ,A2($Graphics$Collage.rotate,
+                                             $Basics.degrees(-90),
+                                             A2($Graphics$Collage.move,
+                                             {ctor: "_Tuple2",_0: _p2,_1: -68 + _p3},
+                                             A2($Graphics$Collage.filled,$Color.charcoal,A2($Graphics$Collage.ngon,3,81))))]));
+   };
+   var bShape = balloon({ctor: "_Tuple2",_0: -20,_1: -100});
+   var aBalloon = {x: -20,y: -100,b: bShape};
+   var main = A2($Signal.map,view,A3($Signal.foldp,update,aBalloon,iter));
+   var Loon = F3(function (a,b,c) {    return {x: a,y: b,b: c};});
+   return _elm.Main.values = {_op: _op,Loon: Loon,balloon: balloon,bShape: bShape,aBalloon: aBalloon,view: view,update: update,iter: iter,main: main};
+};
