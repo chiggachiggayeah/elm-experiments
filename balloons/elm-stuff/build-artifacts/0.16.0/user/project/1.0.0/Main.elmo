@@ -11,31 +11,112 @@ Elm.Main.make = function (_elm) {
    $Graphics$Element = Elm.Graphics.Element.make(_elm),
    $List = Elm.List.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
+   $Random = Elm.Random.make(_elm),
    $Result = Elm.Result.make(_elm),
    $Signal = Elm.Signal.make(_elm),
-   $Time = Elm.Time.make(_elm);
+   $Time = Elm.Time.make(_elm),
+   $Window = Elm.Window.make(_elm);
    var _op = {};
-   var iter = A2($Signal.map,function (t) {    return t / 20;},$Time.fps(30));
-   var update = F2(function (dt,loon) {
-      return _U.cmp(loon.y + dt / 0.9,500) < 0 ? _U.update(loon,{b: A2($Graphics$Collage.moveY,dt / 0.9,loon.b),y: loon.y + dt / 0.9}) : loon;
-   });
-   var view = function (loon) {    return A3($Graphics$Collage.collage,1000,1000,_U.list([loon.b]));};
-   var balloon = function (_p0) {
-      var _p1 = _p0;
-      var _p3 = _p1._1;
-      var _p2 = _p1._0;
+   var toPair = F2(function (loon,fl) {    return {ctor: "_Tuple2",_0: loon,_1: fl};});
+   var iter = A2($Signal.map,function (t) {    return t / 50;},$Time.fps(60));
+   var showLoons = function (sim) {    return $Graphics$Element.show(sim);};
+   var toTuple = function (_p0) {    var _p1 = _p0;return {ctor: "_Tuple2",_0: _p1.x,_1: _p1.y};};
+   var getInt = function (_p2) {    var _p3 = _p2;return _p3._0;};
+   var getSeed = function (_p4) {    var _p5 = _p4;return _p5._1;};
+   var genInitSeed = $Random.initialSeed(36758);
+   var runGen = function (seed) {    var gen = A2($Random.$int,-255,255);return A2($Random.generate,gen,seed);};
+   var getHeight = function (h) {    return $Basics.toFloat(h);};
+   var baseWidth = 500;
+   var radius = baseWidth / 10;
+   var baseHeight = 500;
+   var balloon = function (_p6) {
+      var _p7 = _p6;
+      var _p9 = _p7._1;
+      var _p8 = _p7._0;
+      var ribbon = A2($Graphics$Collage.traced,
+      $Graphics$Collage.solid($Color.red),
+      $Graphics$Collage.path(_U.list([{ctor: "_Tuple2",_0: _p8,_1: _p9 - radius * 7},{ctor: "_Tuple2",_0: _p8,_1: _p9 - radius * 2}])));
+      var newColor = A4($Color.rgba,
+      $Basics.floor($Basics.abs(_p8)),
+      $Basics.floor($Basics.abs(_p9 + baseHeight)),
+      A2($Basics.min,75,$Basics.floor($Basics.abs(_p8 + _p9 + baseHeight))),
+      1.0);
       return $Graphics$Collage.group(_U.list([A2($Graphics$Collage.move,
-                                             {ctor: "_Tuple2",_0: _p2,_1: _p3},
-                                             A2($Graphics$Collage.filled,$Color.charcoal,$Graphics$Collage.circle(75)))
+                                             {ctor: "_Tuple2",_0: _p8,_1: _p9},
+                                             A2($Graphics$Collage.filled,newColor,$Graphics$Collage.circle(radius)))
                                              ,A2($Graphics$Collage.rotate,
                                              $Basics.degrees(-90),
                                              A2($Graphics$Collage.move,
-                                             {ctor: "_Tuple2",_0: _p2,_1: -68 + _p3},
-                                             A2($Graphics$Collage.filled,$Color.charcoal,A2($Graphics$Collage.ngon,3,81))))]));
+                                             {ctor: "_Tuple2",_0: _p8,_1: -50 + _p9},
+                                             A2($Graphics$Collage.filled,newColor,A2($Graphics$Collage.ngon,3,radius))))
+                                             ,ribbon]));
    };
-   var bShape = balloon({ctor: "_Tuple2",_0: -20,_1: -100});
-   var aBalloon = {x: -20,y: -100,b: bShape};
-   var main = A2($Signal.map,view,A3($Signal.foldp,update,aBalloon,iter));
-   var Loon = F3(function (a,b,c) {    return {x: a,y: b,b: c};});
-   return _elm.Main.values = {_op: _op,Loon: Loon,balloon: balloon,bShape: bShape,aBalloon: aBalloon,view: view,update: update,iter: iter,main: main};
+   var bShape = balloon({ctor: "_Tuple2",_0: -20,_1: 0});
+   var aBalloon = {x: -20,y: 0,b: bShape,vx: 0,vy: 0};
+   var bBalloon = {x: 70,y: 10,b: balloon({ctor: "_Tuple2",_0: 80,_1: 10}),vx: 0,vy: 0};
+   var simulation = {allLoons: _U.list([aBalloon,bBalloon]),deltaSum: 0};
+   var view = F2(function (_p10,sim) {
+      var _p11 = _p10;
+      var _p12 = _p11._1;
+      var allLoons = A2($List.map,function (_) {    return _.b;},sim.allLoons);
+      var gameScale = A2($Basics.min,$Basics.toFloat(_p12) / baseHeight,1);
+      return A3($Graphics$Collage.collage,_p11._0,_p12,A2($List.map,$Graphics$Collage.scale(gameScale),allLoons));
+   });
+   var updateLoon = F2(function (dt,loon) {
+      var delta = dt / 100;
+      return _U.update(loon,
+      {x: loon.x
+      ,y: _U.cmp(loon.y,baseHeight - radius * 3) < 0 ? loon.y + loon.vy : loon.y
+      ,vx: loon.vx
+      ,vy: _U.cmp(loon.vy,20) < 0 ? loon.vy + delta : loon.vy
+      ,b: _U.cmp(loon.y,baseHeight - radius * 3) < 0 ? A2($Graphics$Collage.moveY,loon.vy,loon.b) : loon.b});
+   });
+   var updateLoons = F2(function (dt,sim) {
+      var balloons = function () {
+         var thisYSeed = $Random.initialSeed($Basics.ceiling(sim.deltaSum * 5));
+         var randYVal = getInt(runGen(thisYSeed));
+         var thisXSeed = $Random.initialSeed($Basics.floor(sim.deltaSum));
+         var randXVal = getInt(runGen(thisXSeed));
+         var newLoon = {x: $Basics.toFloat(randXVal)
+                       ,y: $Basics.toFloat(randYVal - baseHeight)
+                       ,vx: 0
+                       ,vy: 0
+                       ,b: balloon({ctor: "_Tuple2",_0: $Basics.toFloat(randXVal),_1: $Basics.toFloat(randYVal - baseHeight)})};
+         return _U.cmp(sim.deltaSum / $Basics.toFloat($List.length(sim.allLoons)),30) > 0 ? A2($List._op["::"],newLoon,sim.allLoons) : sim.allLoons;
+      }();
+      return _U.update(sim,{allLoons: A2($List.map,updateLoon(dt),balloons),deltaSum: sim.deltaSum + dt});
+   });
+   var simStep = A3($Signal.foldp,updateLoons,simulation,iter);
+   var runSim = A3($Signal.map2,view,$Window.dimensions,simStep);
+   var main = runSim;
+   var showSim = A2($Signal.map,showLoons,simStep);
+   var Sim = F2(function (a,b) {    return {allLoons: a,deltaSum: b};});
+   var Loon = F5(function (a,b,c,d,e) {    return {x: a,y: b,vx: c,vy: d,b: e};});
+   return _elm.Main.values = {_op: _op
+                             ,Loon: Loon
+                             ,Sim: Sim
+                             ,baseHeight: baseHeight
+                             ,baseWidth: baseWidth
+                             ,radius: radius
+                             ,getHeight: getHeight
+                             ,runGen: runGen
+                             ,genInitSeed: genInitSeed
+                             ,getSeed: getSeed
+                             ,getInt: getInt
+                             ,balloon: balloon
+                             ,bShape: bShape
+                             ,aBalloon: aBalloon
+                             ,bBalloon: bBalloon
+                             ,simulation: simulation
+                             ,toTuple: toTuple
+                             ,view: view
+                             ,updateLoon: updateLoon
+                             ,updateLoons: updateLoons
+                             ,showLoons: showLoons
+                             ,iter: iter
+                             ,toPair: toPair
+                             ,simStep: simStep
+                             ,runSim: runSim
+                             ,showSim: showSim
+                             ,main: main};
 };
